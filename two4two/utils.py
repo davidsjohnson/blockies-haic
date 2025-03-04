@@ -17,7 +17,6 @@ FULL_CIRCLE = (-np.pi, np.pi)
 
 T = TypeVar('T')
 
-
 class discrete():
     """Wrapper around ``scypi.stats.rv_discrete`` to support more than ints.
 
@@ -83,6 +82,16 @@ def numpy_to_python_scalar(x: np.ndarray) -> Union[int, float]:
     else:
         raise ValueError(f"Cannot convert {x} to int or float.")
 
+
+def multiple_choice(values: Sequence[str], probs: Sequence[float], size: int) -> callable:
+    """Samples from a discrete distribution.
+
+    Args:
+        values: The values to sample from.
+        probs: The probabilities of the values.
+
+    """
+    return lambda: tuple(np.random.choice(values, p=probs, size=size, replace=False))
 
 def truncated_normal(mean: float = 0,
                      std: float = 1,

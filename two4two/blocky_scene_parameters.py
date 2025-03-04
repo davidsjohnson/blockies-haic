@@ -8,11 +8,13 @@ import dataclasses
 import importlib
 import json
 import math
+import itertools
 import pprint
 from typing import Any, ClassVar, Dict, List, Optional, Tuple, Union
 import uuid
 
 from two4two import utils
+from two4two.scene_parameters import SceneParameters
 
 
 OBJ_NAME_TO_INT = {
@@ -22,9 +24,12 @@ OBJ_NAME_TO_INT = {
 """Mapping from SceneParameters.obj_name to an integer. Please use this
 encoding convention if you train a binary classifier."""
 
+# Setup ILL characteristics and their probabilities
+ILL_MARKERS = {'high_bend': .30, 'high_sphere_diff': .30, 'mutation_mainbones': .10, 'stretchy': .30}
+
 
 @dataclasses.dataclass()
-class BlockySceneParameters:
+class BlockySceneParameters(SceneParameters):
     """All parameters need to render a single image / scene.
 
     See the ``SceneParameters.VALID_VALUES`` for valid value ranges for the
@@ -64,10 +69,11 @@ class BlockySceneParameters:
     """
     # TODO: once #38 is done. describe the coordinate system in full detail.
     obj_name: str = 'healthy'           # encondes class of the generate blocky
+    num_ill_chars: int = 1              # encondes the number of ILL characteristics of the blocky
     ill_chars: Union[tuple[str], None] = None # encondes the ILL characteristics of the blocky
     labeling_error: bool = False
-    main_spherical: float = 0.5         # encodes the sphericality of the main bones of a blocky
-    sec_spherical: float = 0.6          # encodes the sphericality of the secondary bones of a blocky\
+    main_spherical: float = 0.1         # encodes the sphericality of the main bones of a blocky
+    sec_spherical: float = 0.6          # encodes the sphericality of the sec bones of a blocky
     num_sec_bones: int = 2              # encodes the number of secondary bones of a blocky
     bending: float = 0.0                # encodes the bending of the blocky posture
     obj_rotation_roll: float = 0.0      # encodes the rotation of the blocky around the Y axis
@@ -96,6 +102,7 @@ class BlockySceneParameters:
         repr=False,
         default_factory=lambda: {
             'obj_name': 'default',
+            'num_ill_chars': 'default',
             'ill_chars': 'default',
             'labeling_error': 'default',
             'main_spherical': 'default',
@@ -119,6 +126,12 @@ class BlockySceneParameters:
             set[bool],
             set[str],
         ]]] = {
+        'num_ill_chars': (0, 4),
+
+        # check for all possible combinations of ILL_MARKERS
+        'ill_chars': [()] + list(itertools.chain.from_iterable(
+            itertools.permutations(ILL_MARKERS.keys(), r) for r in range(1, 5)
+            )),
         'main_spherical': (0., 1.22),
         'sec_spherical': (0., 1.22),
         'num_sec_bones': (1, 4),
@@ -149,8 +162,9 @@ class BlockySceneParameters:
         params.ill_chars = ['strong_bend', 'strong_sphere_diff', 'stretchy']
         params.bending = 0.3
         params.main_spherical = 0.1
-        params.sec_spherical = 0.7
-        params.arm_position = 1
+        params.sec_spherical_diff = 0.6
+        params.num_sec_bones = 2
+        params.arm_position = 0.9
         return params
 
     @classmethod
