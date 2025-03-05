@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import dataclasses
 from typing import Any, Callable, Dict, Optional, Union
-import random
-import itertools
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -95,7 +93,7 @@ class BlockySampler:
     sec_spherical: Continuous = utils.truncated_normal(.20, .10, .05, .30)
     num_sec_bones: Discrete = utils.discrete({1: 1/3, 2: 1/3, 3: 1/3})
 
-    bending: Continuous = utils.truncated_normal(0.1, 0.125, 0, 0.25)
+    bending: Continuous = utils.truncated_normal(0.1, 0.125, 0, 0.20)
     arm_position: Continuous = utils.truncated_normal(mean=0.5, std=0.2, lower=0, upper=0.5)
     labeling_error: Discrete = utils.discrete({True: 0., False: 1.})
     obj_rotation_roll: Continuous = utils.truncated_normal(0, 0.03 * np.pi / 4,
@@ -274,4 +272,171 @@ class BlockySampler:
         params.sec_spherical = new_val
         params.mark_sampled('sec_spherical')
 
-        
+    def sample_num_sec_bones(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the number of secondary bones.
+
+        Attrs:
+            params: SceneParameters for which the ill state is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.num_sec_bones = self._sample(obj_name, self.num_sec_bones)
+        params.mark_sampled('num_sec_bones')
+
+    def sample_bending(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the bending of the bones.
+
+        Attrs:
+            params: SceneParameters for which the ill state is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+
+        obj_name = self._sample_name() if intervention else params.obj_name
+
+        high_bend_dist = utils.truncated_normal(0.275, 0.05, 0.20, 0.39)
+
+        dist = high_bend_dist if 'high_bend' in params.ill_chars else self.bending
+        params.bending = self._sample(obj_name, dist)
+        params.mark_sampled('bending')
+
+    def sample_arm_position(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the arm position.
+
+        Attrs:
+            params: SceneParameters for which the ill state is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+
+        stretchy_dist = utils.truncated_normal(mean=0.75, std=0.1, lower=0.5, upper=1.0)
+        dist = stretchy_dist if 'stretchy' in params.ill_chars else self.arm_position
+        params.arm_position = self._sample(obj_name, dist)
+        params.mark_sampled('arm_position')
+
+
+    def sample_rotation(self, params: BlockySceneParameters, intervention: bool = False):
+        """Convienience function bundeling all object rotation functions by calling them.
+
+        Attrs:
+            params: SceneParameters for which the object inclination is sampled and updated.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        self.sample_obj_rotation_roll(params, intervention=intervention)
+        self.sample_obj_rotation_pitch(params, intervention=intervention)
+        self.sample_obj_rotation_yaw(params, intervention=intervention)
+
+    def sample_obj_rotation_roll(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``obj_rotation_roll``.
+
+        Attrs:
+            params: SceneParameters for which the object inclination is sampled and updated.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.obj_rotation_roll = self._sample(obj_name, self.obj_rotation_roll)
+        params.mark_sampled('obj_rotation_roll')
+
+    def sample_obj_rotation_pitch(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``obj_rotation_pitch``.
+
+        Attrs:
+            params: SceneParameters for which the rotation is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.obj_rotation_pitch = self._sample(obj_name, self.obj_rotation_pitch)
+        params.mark_sampled('obj_rotation_pitch')
+
+    def sample_obj_rotation_yaw(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``obj_rotation_yaw``.
+
+        Attrs:
+            params: SceneParameters for which the rotation is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.obj_rotation_yaw = self._sample(obj_name, self.obj_rotation_yaw)
+        params.mark_sampled('obj_rotation_yaw')
+
+    def sample_fliplr(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``fliplr``.
+
+        Attrs:
+            params: SceneParameters for which the fliping (left/right) is sampled and updated.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.fliplr = self._sample(obj_name, self.fliplr)
+        params.mark_sampled('fliplr')
+
+    def sample_position(self, params: BlockySceneParameters, intervention: bool = False):
+        """Convienience function calling ``sample_position_x`` and ``sample_position_y``.
+
+        Attrs:
+            params: SceneParameters for which the position is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        self.sample_position_x(params, intervention=intervention)
+        self.sample_position_y(params, intervention=intervention)
+
+    def sample_position_x(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``position_x`` of the object.
+
+        Attrs:
+            params: SceneParameters for which the position is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.position_x = self._sample(obj_name, self.position_x)
+        params.mark_sampled('position_x')
+
+    def sample_position_y(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples ``position_y`` of the object.
+
+        Attrs:
+            params: SceneParameters for which the position is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.position_y = self._sample(obj_name, self.position_y)
+        params.mark_sampled('position_y')
+
+    def _object_cmap(self, params: BlockySceneParameters) -> mpl.colors.Colormap:
+        return plt.get_cmap(self.obj_color_map)
+
+    def sample_color(self, params: BlockySceneParameters, intervention: bool = False):
+        """Convienience function calling ``sample_obj_color`` and ``sample_bg_color``.
+
+        Attrs:
+            params: SceneParameters for which the position is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        self.sample_obj_color(params, intervention=intervention)
+        self.sample_bg_color(params, intervention=intervention)
+
+    def sample_obj_color(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``obj_color`` and ``obj_color_rgba``.
+
+        Attrs:
+            params: SceneParameters for which the obj_color is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.obj_color = float(self._sample(obj_name, self.obj_color))
+        params.obj_color_rgba = tuple(self._object_cmap(params)(params.obj_color))  # type: ignore
+        params.mark_sampled('obj_color')
+
+    def _bg_cmap(self, params: BlockySceneParameters) -> mpl.colors.Colormap:
+        return plt.get_cmap(self.bg_color_map)
+
+    def sample_bg_color(self, params: BlockySceneParameters, intervention: bool = False):
+        """Samples the ``bg_color_rgba`` and ``bg_color``.
+
+        Attrs:
+            params: SceneParameters for which the labeling_error is sampled and updated in place.
+            intervention: Flag whether interventional sampling is applied. Details: see class docu.
+        """
+        obj_name = self._sample_name() if intervention else params.obj_name
+        params.bg_color = float(self._sample(obj_name, self.bg_color))
+        params.bg_color_rgba = tuple(self._bg_cmap(params)(params.bg_color))  # type: ignore
+        params.mark_sampled('bg_color')
