@@ -4,6 +4,9 @@ from __future__ import annotations
 
 import dataclasses
 from typing import Dict, Tuple
+import random
+
+from scipy.stats import beta
 
 import bpy
 from mathutils import Vector
@@ -348,18 +351,39 @@ class Two4TwoBlenderObject():
 
     def _set_spherical(self,
                        amount: float,
-                       clamp_overlap: bool = True):
+                       amount2: float,
+                       clamp_overlap: bool = True,
+                       num_diff: int = 2):
         """Make the squares more round."""
         # TODO(philpp): do you know where this equation comes from?
         width = 0.05 + self.cube_size * 0.25 * amount
-        for name in self.blocks:
-            block = butils.set_active(name)
-            bpy.ops.object.modifier_add(type='BEVEL')
-            block.modifiers['Bevel'].width = width
-            bpy.ops.object.modifier_apply()
-            bpy.ops.object.modifier_add(type='SUBSURF')
-            block.modifiers['Subdivision'].render_levels = 5
-            bpy.ops.object.modifier_apply()
+
+        cube_size_mod = 0.8
+        width_mod = 0.25
+        cube_size2 = cube_size_mod + amount2 * 0.1
+        width2 = 0.05 + cube_size2 * width_mod * amount2
+
+        diff_blocks = random.sample(range(8), num_diff)
+
+        for i, name in enumerate(self.blocks):
+            if i not in diff_blocks:
+                # use normal parameters for these
+                block = butils.set_active(name)
+                bpy.ops.object.modifier_add(type='BEVEL')
+                block.modifiers['Bevel'].width = width
+                bpy.ops.object.modifier_apply()
+                bpy.ops.object.modifier_add(type='SUBSURF')
+                block.modifiers['Subdivision'].render_levels = 5
+                bpy.ops.object.modifier_apply()
+            else:
+                # use modified width for these blocks
+                block = butils.set_active(name)
+                bpy.ops.object.modifier_add(type='BEVEL')
+                block.modifiers['Bevel'].width = width2
+                bpy.ops.object.modifier_apply()
+                bpy.ops.object.modifier_add(type='SUBSURF')
+                block.modifiers['Subdivision'].render_levels = 5
+                bpy.ops.object.modifier_apply()
 
     @property
     def boundaries(self) -> butils.BOUNDING_BOX:
@@ -369,7 +393,9 @@ class Two4TwoBlenderObject():
     def __init__(self,
                  obj_name: str,
                  spherical: float = 0,
-                 arm_position: float = 0):
+                 ill_spherical: float = 0,
+                 arm_position: float = 0,
+                 num_diff: int = 2):
 
         # Object Type. 'peaky' or 'stretchy'
         self.obj_name = obj_name
@@ -383,4 +409,4 @@ class Two4TwoBlenderObject():
         self._create_model()
         self._create_armature()
         self.center()
-        self._set_spherical(spherical)
+        self._set_spherical(amount=spherical, amount2=ill_spherical, num_diff=num_diff)
