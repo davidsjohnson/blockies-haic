@@ -60,3 +60,6 @@ To generate the default dataset on your own use the following commands:
 ```
 two4two_render_dataset config/color_spher_bias.toml
 ```
+
+## IJCAI25 - Submission
+Jupyter Notebooks to replicate and review the dataset and model used in the IJCAI submission are available in the folder `ijcai25`.  The notebooks also provide examples for working with an existing **Blockies** dataset.  
